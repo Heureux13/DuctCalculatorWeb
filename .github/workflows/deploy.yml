@@ -1,0 +1,53 @@
+name: Publish website
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download source
+        uses: actions/checkout@v4
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build website
+        run: dotnet publish DuctCalculatorWeb/DuctCalculatorWeb.csproj -c Release -o published
+
+      - name: Set website address and page fallback
+        run: |
+          sed -i 's|<base href="/" />|<base href="/DuctCalculatorWeb/" />|' published/wwwroot/index.html
+          cp published/wwwroot/index.html published/wwwroot/404.html
+          touch published/wwwroot/.nojekyll
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: published/wwwroot
+
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
