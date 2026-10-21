@@ -1,0 +1,50 @@
+﻿@page "/counter"
+@using SheetmetalTools.Ducts
+
+<h1>Duct Calculator</h1>
+
+<div>
+    <label>Airflow (CFM):</label>
+    <input type="number" @bind="_cfm"/>
+</div>
+
+<div>
+    <label>Velocity (FPM):</label>
+    <input type="number" @bind="_velocity"/>
+</div>
+
+<div>
+    <label>Friction Loss (per 100ft):</label>
+    <input type="number" step="0.01" @bind="_frictionLoss"/>
+</div>
+
+<button class="btn btn-primary" @onclick="Calculate">
+    Calculate
+</button>
+
+<p>@_quadResult</p>
+<p>@_roundResult</p>
+<p>@_ovalResult</p>
+
+@code {
+    private string _quadResult = "";
+    private string _roundResult = "";
+    private string _ovalResult = "";
+    private double _cfm = 2100;
+    private double _velocity = 800;
+    private double _frictionLoss = 0.08;
+
+    private void Calculate()
+    {
+        var calculator = new SheetmetalTools.Ducts.Duculator(_cfm, _frictionLoss, 120, _velocity);
+        
+        var quad = calculator.NewSquare();
+        var round = calculator.NewRound();
+        var oval = calculator.NewOval2to1();
+
+
+        _quadResult = $"Rectangular Size: {quad.Shape.Size}";
+        _roundResult = $"Round Size: {round.Shape.Size}";
+        _ovalResult = $"Oval Size: {oval.Shape.Size}";
+    }
+}

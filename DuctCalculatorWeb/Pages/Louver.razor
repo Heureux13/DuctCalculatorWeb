@@ -1,0 +1,39 @@
+﻿@page "/louver"
+@using SheetmetalTools.Devices
+
+<h3>Louver</h3>
+
+<div>
+    <label>Airflow (CFM):</label>
+    <input type="number" @bind="_cfm"/>
+    
+</div>
+
+<div>
+    <label>Velocity (FPM):</label>
+    <input type="number" @bind="_velocity"/>
+    
+</div>
+
+<div>
+    <label>Free Air (1-100%):</label>
+    <input type="number" @bind="_freeAir"/>
+</div>
+
+<button class="btn btn-primary" @onclick="Calculate">
+    Calculate
+</button>
+<p>@_result</p>
+
+@code {
+    private string _result = "";
+    private double _cfm = 5000;
+    private double _velocity = 800;
+    private double _freeAir = 50;
+
+    private void Calculate()
+    {
+        var quad = LouverSizer.CreateSquare(_cfm, _velocity, _freeAir);
+        _result = quad.Shape.Size;
+    }
+}
