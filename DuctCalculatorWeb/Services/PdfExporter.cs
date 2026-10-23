@@ -14,10 +14,10 @@ public class PdfExporter(IJSRuntime js)
 {
     public async Task ExportNested(string title, string subtitle, string[] head,
         IEnumerable<PdfBranchBox> branches, string filename, string[]? legend = null,
-        IEnumerable<PdfPhoto>? photos = null)
+        IEnumerable<PdfPhoto>? photos = null, bool email = false)
     {
         await js.InvokeVoidAsync("downloadNestedPdf", title, subtitle, head, branches, filename,
-            legend ?? [], photos ?? []);
+            legend ?? [], photos ?? [], email);
     }
     public async Task Export(string title, string subtitle, IEnumerable<PdfSection> sections,
         string filename, string orientation = "portrait")

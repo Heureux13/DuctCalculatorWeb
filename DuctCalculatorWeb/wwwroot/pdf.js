@@ -27,7 +27,7 @@ window.downloadPdf = (title, subtitle, sections, filename, orientation = 'portra
     doc.save(filename);
 };
 
-window.downloadNestedPdf = (title, subtitle, head, branches, filename, legend, photos) => {
+window.downloadNestedPdf = async (title, subtitle, head, branches, filename, legend, photos, email) => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait' });
 
@@ -193,6 +193,23 @@ window.downloadNestedPdf = (title, subtitle, head, branches, filename, legend, p
             doc.setLineWidth(0.2);
             doc.rect(x, yy + labelH, w, h);
         });
+    }
+
+    if (email) {
+        const file = new File([doc.output('blob')], filename, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: title, text: title });
+            } catch (e) {
+                if (e.name !== 'AbortError') alert('Could not share: ' + e.message);
+            }
+            return;
+        }
+        // No share sheet (most desktops): download, then open a blank email to attach it to.
+        doc.save(filename);
+        window.location.href = 'mailto:?subject=' + encodeURIComponent(title) +
+            '&body=' + encodeURIComponent('Leak test PDF attached (' + filename + ').');
+        return;
     }
 
     doc.save(filename);

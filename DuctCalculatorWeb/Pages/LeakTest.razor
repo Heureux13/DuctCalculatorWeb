@@ -8,7 +8,8 @@
 <h1>Duct Leakage Test</h1>
 
 <div class="d-flex mb-3">
-    <button class="btn btn-outline-secondary" @onclick="ExportPdf">Download PDF</button>
+    <button class="btn btn-outline-secondary" @onclick="() => ExportPdf(false)">Download PDF</button>
+    <button class="btn btn-outline-secondary ms-2" @onclick="() => ExportPdf(true)">Email PDF</button>
     <button class="btn btn-outline-danger ms-auto" @onclick="ClearAll">Clear all</button>
 </div>
 
@@ -380,7 +381,7 @@
         list.Insert(target, item);
     }
     
-    private async Task ExportPdf()
+    private async Task ExportPdf(bool email)
     {
         FillNames();
         var head = new[]
@@ -453,6 +454,6 @@
             select new PdfPhoto($"{b.Name} / {r.Name} / {s.Name} / #{d.i + 1}", d.duct.Photo!)
         ).ToArray();
 
-        await Pdf.ExportNested("Nava's Leakage Test Extravaganza Where Air Don't Care", subtitle, head, boxes, "leak-test.pdf", legend, photos);
+        await Pdf.ExportNested("Nava's Leakage Test Extravaganza Where Air Don't Care", subtitle, head, boxes, "leak-test.pdf", legend, photos, email);
     }
 }
