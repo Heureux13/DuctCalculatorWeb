@@ -8,12 +8,16 @@ public record PdfSectionBox(string Name, double Total, string[][] Rows);
 public record PdfRunBox(string Name, double Total, PdfSectionBox[] Sections);
 public record PdfBranchBox(string Name, double Total, PdfRunBox[] Runs);
 
+public record PdfPhoto(string Label, string Data);
+
 public class PdfExporter(IJSRuntime js)
 {
     public async Task ExportNested(string title, string subtitle, string[] head,
-        IEnumerable<PdfBranchBox> branches, string filename, string[]? legend = null)
+        IEnumerable<PdfBranchBox> branches, string filename, string[]? legend = null,
+        IEnumerable<PdfPhoto>? photos = null)
     {
-        await js.InvokeVoidAsync("downloadNestedPdf", title, subtitle, head, branches, filename, legend ?? []);
+        await js.InvokeVoidAsync("downloadNestedPdf", title, subtitle, head, branches, filename,
+            legend ?? [], photos ?? []);
     }
     public async Task Export(string title, string subtitle, IEnumerable<PdfSection> sections,
         string filename, string orientation = "portrait")

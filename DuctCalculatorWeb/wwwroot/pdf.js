@@ -27,9 +27,9 @@ window.downloadPdf = (title, subtitle, sections, filename, orientation = 'portra
     doc.save(filename);
 };
 
-window.downloadNestedPdf = (title, subtitle, head, branches, filename, legend) => {
+window.downloadNestedPdf = (title, subtitle, head, branches, filename, legend, photos) => {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape' });
+    const doc = new jsPDF({ orientation: 'portrait' });
 
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
@@ -160,6 +160,39 @@ window.downloadNestedPdf = (title, subtitle, head, branches, filename, legend) =
             y += h + (w.head ? 0.5 : 0);
         });
         doc.setFont(undefined, 'normal');
+    }
+
+    if (photos && photos.length) {
+        // 2 x 3 grid of photos per portrait page, each scaled to fit its cell.
+        const cols = 2, rows = 3, gap = 6, labelH = 6;
+        const cellW = (right - left - gap * (cols - 1)) / cols;
+        const cellH = (bottom - top - 10 - gap * (rows - 1)) / rows;
+
+        photos.forEach((p, i) => {
+            const slot = i % (cols * rows);
+            if (slot === 0) {
+                doc.addPage();
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                doc.text('Photos', left, top + 4);
+                doc.setFont(undefined, 'normal');
+            }
+
+            const x = left + (slot % cols) * (cellW + gap);
+            const yy = top + 10 + Math.floor(slot / cols) * (cellH + gap);
+
+            doc.setFontSize(9);
+            doc.text(p.label, x, yy + 4);
+
+            const props = doc.getImageProperties(p.data);
+            const maxH = cellH - labelH;
+            const scale = Math.min(cellW / props.width, maxH / props.height);
+            const w = props.width * scale, h = props.height * scale;
+            doc.addImage(p.data, 'JPEG', x, yy + labelH, w, h);
+            doc.setDrawColor(150);
+            doc.setLineWidth(0.2);
+            doc.rect(x, yy + labelH, w, h);
+        });
     }
 
     doc.save(filename);

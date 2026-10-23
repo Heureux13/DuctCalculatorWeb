@@ -18,8 +18,8 @@
         <ul class="mb-2">
             <li><strong>SFA</strong> (ft²/ft): surface area per foot of duct, which is the perimeter in feet.</li>
             <li><strong>SFD</strong> (ft²): surface area of the duct, SFA × length.</li>
-            <li><strong>Test pressure</strong> (in. w.g.): static pressure the duct is tested at.</li>
-            <li><strong>Allowable leakage</strong> (CFM): the most air the duct may leak at that pressure.</li>
+            <li><strong>TP</strong>, test pressure (in. w.g.): static pressure the duct is tested at.</li>
+            <li><strong>AL</strong>, allowable leakage (CFM): the most air the duct may leak at that pressure.</li>
             <li><strong>Leakage class</strong>: seal class A, B, or C. Class C is the tightest.</li>
         </ul>
         <strong>Formulas</strong>
@@ -38,19 +38,19 @@
 <div class="row g-2 mb-4 text-center">
     <div class="col-md-2">
         <label class="form-label fw-bold" for="jobName">Job Name</label>
-        <input id="jobName" class="form-control" @bind="_jobName" />
+        <input id="jobName" class="form-control" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" @bind="_jobName" />
     </div>
     <div class="col-md-2">
         <label class="form-label fw-bold" for="jobNumber">Job #</label>
-        <input id="jobNumber" class="form-control" @bind="_jobNumber" />
+        <input id="jobNumber" class="form-control" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" @bind="_jobNumber" />
     </div>
     <div class="col-md-2">
         <label class="form-label fw-bold" for="system">System</label>
-        <input id="system" class="form-control" @bind="_system" />
+        <input id="system" class="form-control" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" @bind="_system" />
     </div>
     <div class="col-md-2">
         <label class="form-label fw-bold" for="unit">Unit</label>
-        <input id="unit" class="form-control" @bind="_unit" />
+        <input id="unit" class="form-control" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" @bind="_unit" />
     </div>
     <div class="col-md-2">
         <label class="form-label fw-bold" for="date">Date</label>
@@ -58,7 +58,7 @@
     </div>
     <div class="col-md-2">
         <label class="form-label fw-bold" for="witness">Witness</label>
-        <input id="witness" class="form-control" @bind="_witness" />
+        <input id="witness" class="form-control" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" @bind="_witness" />
     </div>
 </div>
 
@@ -67,7 +67,7 @@
     <div class="card mb-4 border-orange" @key="branch">
         <div class="card-header d-flex align-items-center gap-3">
             <strong>Branch</strong>
-            <input class="form-control w-auto" placeholder="Branch name" @bind="branch.Name" />
+            <input class="form-control w-auto" placeholder="Branch name" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" @bind="branch.Name" />
             <button class="btn btn-outline-secondary btn-sm" aria-label="Move branch up"
                     @onclick="() => Move(_branches, branch, -1)">▲</button>
             <button class="btn btn-outline-secondary btn-sm" aria-label="Move branch down"
@@ -82,7 +82,7 @@
                 <div class="card mb-3 border-primary" @key="run">
                     <div class="card-header d-flex align-items-center gap-3">
                         <strong>Run</strong>
-                        <input class="form-control w-auto" placeholder="Run name" @bind="run.Name" />
+                        <input class="form-control w-auto" placeholder="Run name" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" @bind="run.Name" />
                         <button class="btn btn-outline-secondary btn-sm" aria-label="Move run up"
                                 @onclick="() => Move(branch.Runs, run, -1)">▲</button>
                         <button class="btn btn-outline-secondary btn-sm" aria-label="Move run down"
@@ -97,7 +97,7 @@
                             <div class="card mb-3 border-success" @key="sec">
                                 <div class="card-header d-flex align-items-center gap-3">
                                     <strong>Section</strong>
-                                    <input class="form-control w-auto" placeholder="Section name" @bind="sec.Name" />
+                                    <input class="form-control w-auto" placeholder="Section name" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" @bind="sec.Name" />
                                     <button class="btn btn-outline-secondary btn-sm" aria-label="Move section up"
                                             @onclick="() => Move(run.Sections, sec, -1)">▲</button>
                                     <button class="btn btn-outline-secondary btn-sm" aria-label="Move section down"
@@ -111,18 +111,20 @@
                                         <table class="table table-bordered table-sm align-middle text-center mb-2 leak-table">
                                             <thead class="table-dark align-top">
                                             <tr>
-                                                <th>Test #</th>
-                                                <th>Type<br /><small>(RND/SQR/OVL)</small></th>
+                                                <th></th>
+                                                <th></th>
+                                                <th>#</th>
+                                                <th>Shape</th>
                                                 <th>Diameter<br /><small>(in)</small></th>
-                                                <th>Width / Major<br /><small>(in)</small></th>
-                                                                                                <th>Height / Minor<br /><small>(in)</small></th>
+                                                <th>Width<br /><small>(in)</small></th>
+                                                <th>Height<br /><small>(in)</small></th>
                                                 <th>Length<br /><small>(ft)</small></th>
                                                 <th>SFA<br /><small>(ft²/ft)</small></th>
                                                 <th>SFD<br /><small>(ft²)</small></th>
-                                                <th>Leakage Class<br /><small>(A/B/C)</small></th>
-                                                <th>Test Pressure<br /><small>(w.g.)</small></th>
-                                                <th>Allowable Leakage<br /><small>(CFM)</small></th>
-                                                <th>Running Total<br /><small>(section)</small></th>
+                                                <th>Class<br /><small>(A/B/C)</small></th>
+                                                <th>TP<br /><small>(w.g.)</small></th>
+                                                <th>AL<br /><small>(CFM)</small></th>
+                                                <th>Running<br />Total</th>
                                                 <th></th>
                                             </tr>
                                             </thead>
@@ -134,36 +136,50 @@
                                                 var runRunning = running;
 
                                                 <tr @key="d">
-                                                    <td class="text-nowrap" data-label="Test #">
+                                                    <td class="leak-photo-cell leak-tool">
+                                                        @if (d.Photo is null)
+                                                        {
+                                                            <label class="btn btn-outline-secondary btn-sm py-0 px-1 mb-0" title="Add photo">
+                                                                📷
+                                                                <InputFile class="d-none" accept="image/*" OnChange="e => AddPhoto(d, e)" />
+                                                            </label>
+                                                        }
+                                                        else
+                                                        {
+                                                            <img src="@d.Photo" alt="Duct photo" title="View photo" class="leak-thumb"
+                                                                 @onclick="() => _viewing = d" />
+                                                        }
+                                                    </td>
+                                                    <td class="text-nowrap leak-tool">
                                                         <button class="btn btn-outline-secondary btn-sm py-0 px-1" aria-label="Move duct up"
                                                                 @onclick="() => Move(sec.Ducts, d, -1)">▲</button>
-                                                        @(i + 1)
-                                                        <button class="btn btn-outline-secondary btn-sm py-0 px-1" aria-label="Move duct down"
+                                                        <button class="btn btn-outline-secondary btn-sm py-0 px-1 ms-2" aria-label="Move duct down"
                                                                 @onclick="() => Move(sec.Ducts, d, 1)">▼</button>
                                                     </td>
-                                                    <td data-label="Type">
-                                                        <select class="form-select form-select-sm" @bind="d.Type">
+                                                    <td class="leak-tool leak-num">@(i + 1)</td>
+                                                    <td data-label="Shape">
+                                                        <select class="form-select form-select-sm leak-narrow" @bind="d.Type">
                                                             <option value="RND">RND</option>
                                                             <option value="SQR">SQR</option>
                                                             <option value="OVL">OVL</option>
                                                         </select>
                                                     </td>
-                                                    <td data-label="Diameter (in)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="30" disabled="@(d.Type != "RND")" @bind="d.Diameter" /></td>
-                                                    <td data-label="Width / Major (in)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Width" /></td>
-                                                    <td data-label="Height / Minor (in)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Height" /></td>
-                                                    <td data-label="Length (ft)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="100" @bind="d.Length" /></td>
-                                                    <td data-label="SFA (ft²/ft)">@d.Sfa.ToString("0.##")</td>
-                                                    <td data-label="SFD (ft²)">@d.Sfd.ToString("0.##")</td>
-                                                    <td data-label="Leakage Class">
+                                                    <td data-label="Diameter (in)"><input class="form-control form-control-sm leak-narrow" type="number" step="any" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" min="0" max="30" disabled="@(d.Type != "RND")" @bind="d.Diameter" /></td>
+                                                    <td data-label="Width (in)"><input class="form-control form-control-sm leak-narrow" type="number" step="any" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Width" /></td>
+                                                    <td data-label="Height (in)"><input class="form-control form-control-sm leak-narrow" type="number" step="any" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Height" /></td>
+                                                    <td data-label="Length (ft)"><input class="form-control form-control-sm leak-narrow" type="number" step="any" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" min="0" max="100" @bind="d.Length" /></td>
+                                                    <td data-label="SFA (ft²/ft)">@(d.IsComplete ? d.Sfa.ToString("0.##") : "")</td>
+                                                    <td data-label="SFD (ft²)">@(d.IsComplete ? d.Sfd.ToString("0.##") : "")</td>
+                                                    <td data-label="Class">
                                                         <select class="form-select form-select-sm" @bind="d.LeakClass">
                                                             <option value="A">A</option>
                                                             <option value="B">B</option>
                                                             <option value="C">C</option>
                                                         </select>
                                                     </td>
-                                                    <td data-label="Test Pressure (w.g.)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="6" @bind="d.TestPressure" /></td>
-                                                    <td data-label="Allowable Leakage (CFM)">@d.AllowableLeakage.ToString("0.##")</td>
-                                                    <td data-label="Running Total (section)">@runRunning.ToString("0.##")</td>
+                                                    <td data-label="TP (w.g.)"><input class="form-control form-control-sm" type="number" step="any" onfocus="this.dataset.old=this.value;this.value=''" onblur="if(this.value===''){this.value=this.dataset.old}" min="0" max="6" @bind="d.TestPressure" /></td>
+                                                    <td data-label="AL (CFM)">@(d.IsComplete ? d.AllowableLeakage.ToString("0.##") : "")</td>
+                                                    <td data-label="Running Total">@(d.IsComplete ? runRunning.ToString("0.##") : "")</td>
                                                     <td class="leak-del">
                                                         <button class="btn btn-outline-danger btn-sm" aria-label="Delete duct"
                                                                 @onclick="() => sec.Ducts.Remove(d)">✕</button>
@@ -182,21 +198,44 @@
                         }
 
                         <button class="                        btn btn-outline-success btn-sm"
-                                @onclick="() => run.Sections.Add(new LeakSection())">+ Add section</button>
+                                @onclick="() => run.Sections.Add(new LeakSection { Name = NextName(run.Sections.Select(s => s.Name), 'S') })">+ Add section</button>
                     </div>
                     <div class="card-footer text-end">Total: @run.Total.ToString("0.##") CFM</div>
                 </div>
             }
 
             <button class="            btn btn-outline-primary btn-sm"
-                    @onclick="() => branch.Runs.Add(new LeakRun())">+ Add run</button>
+                    @onclick="() => branch.Runs.Add(new LeakRun { Name = NextName(branch.Runs.Select(r => r.Name), 'R') })">+ Add run</button>
         </div>
         <div class="card-footer text-end">Total: @branch.Total.ToString("0.##") CFM</div>
     </div>
 }
 
 <button class="btn btn-outline-orange mb-4"
-        @onclick="() => _branches.Add(new LeakBranch())">+ Add branch</button>
+        @onclick="() => _branches.Add(new LeakBranch { Name = NextName(_branches.Select(b => b.Name), 'B') })">+ Add branch</button>
+
+@if (_storageFull)
+{
+    <div class="alert alert-warning">Storage is full, so recent changes aren't saved. Remove some photos to free up space.</div>
+}
+
+@if (_viewing is { Photo: not null } viewing)
+{
+    <div class="leak-photo-overlay" @onclick="() => _viewing = null">
+        <div class="leak-photo-box" @onclick:stopPropagation="true">
+            <img src="@viewing.Photo" alt="Duct photo" />
+            <div class="d-flex gap-2 mt-2">
+                <label class="btn btn-outline-secondary mb-0">
+                    Retake / replace
+                    <InputFile class="d-none" accept="image/*" OnChange="e => AddPhoto(viewing, e)" />
+                </label>
+                <button class="btn btn-outline-danger"
+                        @onclick="() => { viewing.Photo = null; _viewing = null; }">Remove photo</button>
+                <button class="btn btn-secondary ms-auto" @onclick="() => _viewing = null">Close</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private string _jobName = "";
@@ -206,6 +245,18 @@
     private DateTime? _date;
     private string _witness = "";
     private List<LeakBranch> _branches = new() { new LeakBranch() };
+
+    // Picks the next unused number, e.g. R01, R02 -> R03 (skips names the user typed).
+    private static string NextName(IEnumerable<string> existing, char letter)
+    {
+        var used = existing.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var n = 1;
+        while (used.Contains($"{letter}{n:00}"))
+        {
+            n++;
+        }
+        return $"{letter}{n:00}";
+    }
     private const string StorageKey = "leaktest-v1";
     private bool _loaded;
 
@@ -232,7 +283,33 @@
             // Corrupt or unavailable storage: start with a blank form.
         }
 
+        FillNames();
         _loaded = true;
+    }
+
+    // Gives any blank branch, run, or section a default name like B01, R01, S01.
+    private void FillNames()
+    {
+        foreach (var branch in _branches.Where(b => string.IsNullOrWhiteSpace(b.Name)))
+        {
+            branch.Name = NextName(_branches.Select(b => b.Name), 'B');
+        }
+
+        foreach (var branch in _branches)
+        {
+            foreach (var run in branch.Runs.Where(r => string.IsNullOrWhiteSpace(r.Name)))
+            {
+                run.Name = NextName(branch.Runs.Select(r => r.Name), 'R');
+            }
+
+            foreach (var run in branch.Runs)
+            {
+                foreach (var sec in run.Sections.Where(s => string.IsNullOrWhiteSpace(s.Name)))
+                {
+                    sec.Name = NextName(run.Sections.Select(s => s.Name), 'S');
+                }
+            }
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -248,7 +325,33 @@
             Unit = _unit, Date = _date, Witness = _witness, Branches = _branches
         };
 
-        await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, JsonSerializer.Serialize(save));
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, JsonSerializer.Serialize(save));
+            _storageFull = false;
+        }
+        catch (JSException)
+        {
+            // Browser storage is full (usually too many photos).
+            if (!_storageFull)
+            {
+                _storageFull = true;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private LeakDuct? _viewing;
+    private bool _storageFull;
+
+    private async Task AddPhoto(LeakDuct duct, InputFileChangeEventArgs e)
+    {
+        // Shrink in the browser first so photos fit in local storage.
+        var image = await e.File.RequestImageFileAsync("image/jpeg", 1024, 1024);
+        await using var stream = image.OpenReadStream(10_000_000);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+        duct.Photo = "data:image/jpeg;base64," + Convert.ToBase64String(memory.ToArray());
     }
 
     private async Task ClearAll()
@@ -279,12 +382,13 @@
     
     private async Task ExportPdf()
     {
+        FillNames();
         var head = new[]
         {
-            "Test #", "Type", "Diameter\n(in)", "Width/Major\n(in)",
-            "Height/Minor\n(in)", "Length\n(ft)", "SFA\n(ft²/ft)", "SFD\n(ft²)",
-            "Class\n(A/B/C)", "Test Pressure\n(w.g.)", "Allowable\nLeakage (CFM)",
-            "Running Total\n(section)"
+            "#", "Shape", "Diameter\n(in)", "Width\n(in)",
+            "Height\n(in)", "Length\n(ft)", "SFA\n(ft²/ft)", "SFD\n(ft²)",
+            "Class\n(A/B/C)", "TP\n(w.g.)", "AL\n(CFM)",
+            "Running\nTotal"
         };
 
         var subtitle =
@@ -296,13 +400,15 @@
             "#Units",
             "SFA (ft²/ft): surface area per foot of duct, which is the perimeter in feet.",
             "SFD (ft²): surface area of the duct, SFA × length.",
-            "Test pressure (in. w.g.): static pressure the duct is tested at.",
-            "Allowable leakage (CFM): the most air the duct may leak at that pressure.",
+            "TP, test pressure (in. w.g.): static pressure the duct is tested at.",
+            "AL, allowable leakage (CFM): the most air the duct may leak at that pressure.",
             "Leakage class: seal class A, B, or C. Class C is the tightest.",
+            
             "#Formulas",
             "Round SFA = pi × diameter ÷ 12;  Square/rectangular SFA = 2 × (width + height) ÷ 12;  Oval SFA = (2 × (major - minor) + pi × minor) ÷ 12",
             "SFD = SFA × length;  Allowable leakage = class × (SFD ÷ 100) × test pressure^0.65",
             "Class value: round and oval A/B/C = 2/4/8, square/rectangular A/B/C = 4/8/16",
+            
             "For reference only. Verify results against the project specifications."
         };
 
@@ -326,18 +432,27 @@
                             d.Type == "RND" ? "" : $"{d.Width:0.##}",
                             d.Type == "RND" ? "" : $"{d.Height:0.##}",
                             $"{d.Length:0.##}",
-                            $"{d.Sfa:0.##}",
-                            $"{d.Sfd:0.##}",
+                            d.IsComplete ? $"{d.Sfa:0.##}" : "",
+                            d.IsComplete ? $"{d.Sfd:0.##}" : "",
                             d.LeakClass,
                             $"{d.TestPressure:0.##}",
-                            $"{d.AllowableLeakage:0.##}",
-                            $"{running:0.##}"
+                            d.IsComplete ? $"{d.AllowableLeakage:0.##}" : "",
+                            d.IsComplete ? $"{running:0.##}" : ""
                         };
                     }).ToArray();
 
                     return new PdfSectionBox(sec.Name, sec.Total, rows);
                 }).ToArray())).ToArray())).ToArray();
 
-        await Pdf.ExportNested("Nava's Leakage Test Extravaganza Where Air Don't Care", subtitle, head, boxes, "leak-test.pdf", legend);
+        var photos = (
+            from b in _branches
+            from r in b.Runs
+            from s in r.Sections
+            from d in s.Ducts.Select((duct, i) => (duct, i))
+            where d.duct.Photo is not null
+            select new PdfPhoto($"{b.Name} / {r.Name} / {s.Name} / #{d.i + 1}", d.duct.Photo!)
+        ).ToArray();
+
+        await Pdf.ExportNested("Nava's Leakage Test Extravaganza Where Air Don't Care", subtitle, head, boxes, "leak-test.pdf", legend, photos);
     }
 }
