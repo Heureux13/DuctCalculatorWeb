@@ -2,10 +2,28 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 
 main {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.content {
+    flex: 1;
+}
+
+.site-footer {
+    background-color: #f7f7f7;
+    border-top: 1px solid #d6d5d5;
+    color: #595959;
+    font-size: 0.875rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    margin-top: 1.5rem;
 }
 
 .sidebar {
@@ -70,7 +88,7 @@ main {
         width: 0;
     }
 
-    .top-row, article {
+    .top-row, article, .site-footer {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
