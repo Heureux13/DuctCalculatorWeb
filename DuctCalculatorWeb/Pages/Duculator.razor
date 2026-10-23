@@ -1,50 +1,502 @@
 ﻿@page "/counter"
+@using SheetmetalTools.Air
 @using SheetmetalTools.Ducts
+@using SheetmetalTools.Materials
+@using DuctCalculatorWeb.Services
+@inject PdfExporter Pdf
 
 <h1>Duct Calculator</h1>
 
-<div>
-    <label>Airflow (CFM):</label>
-    <input type="number" @bind="_cfm"/>
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <label class="form-label" for="cfm">Airflow (CFM)</label>
+        <input id="cfm" class="form-control" type="number" step="any" @bind="_cfm" />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="velocity">Maximum velocity (FPM)</label>
+        <input id="velocity" class="form-control" type="number" step="any" @bind="_velocity" />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="friction">Maximum friction loss (in. w.g./100 ft)</label>
+        <input id="friction" class="form-control" type="number" step="0.01" @bind="_frictionLoss" />
+    </div>
 </div>
 
-<div>
-    <label>Velocity (FPM):</label>
-    <input type="number" @bind="_velocity"/>
-</div>
-
-<div>
-    <label>Friction Loss (per 100ft):</label>
-    <input type="number" step="0.01" @bind="_frictionLoss"/>
-</div>
-
-<button class="btn btn-primary" @onclick="Calculate">
-    Calculate
+<button class="btn btn-primary mb-4" @onclick="Calculate">
+    Calculate sizes
 </button>
 
-<p>@_quadResult</p>
-<p>@_roundResult</p>
-<p>@_ovalResult</p>
+<button class="btn btn-outline-secondary mb-4 ms-2" @onclick="ExportPdf">
+    Download PDF
+</button>
+
+<div id="pdf-content">
+
+    @if (_round is not null)
+    {
+        <h2 class="h4">Suggested round size</h2>
+
+        <table class="table table-striped align-middle mb-4">
+            <thead class="table-dark">
+            <tr>
+                <th>Diameter</th>
+                <th>Airflow</th>
+                <th>Velocity</th>
+                <th>Friction loss</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-secondary btn-sm"
+                                aria-label="Decrease diameter"
+                                disabled="@(_round.Diameter <= 1)"
+                                @onclick="() => ChangeRoundSize(-1)">−</button>
+                        <span>@_round.Diameter in. Ø</span>
+                        <button class="btn btn-outline-secondary btn-sm"
+                                aria-label="Increase diameter"
+                                @onclick="() => ChangeRoundSize(1)">+</button>
+                    </div>
+                </td>
+                <td>@_cfm.ToString("0.##") CFM</td>
+                <td>@_round.Velocity.ToString("0.##") FPM</td>
+                <td>@_round.FrictionLoss.ToString("0.000") in. w.g./100 ft</td>
+                <td>
+                    @if (_round.ExceedsLimits)
+                    {
+                        <span class="badge bg-warning text-dark">Over limit</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success">Within limits</span>
+                    }
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == "rectangle" ? "active" : "")"
+                            @onclick='() => _activeTab = "rectangle"'>Rectangle</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == "oval" ? "active" : "")"
+                            @onclick='() => _activeTab = "oval"'>Oval</button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            @if (_activeTab == "rectangle")
+            {
+                @if (_options.Count > 0)
+                {
+                    <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                        <table class="table table-striped table-hover align-middle">
+                            <thead class="table-dark" style="position: sticky; top: 0;">
+                            <tr>
+                                <th>Width</th>
+                                <th>Height</th>
+                                <th>Airflow</th>
+                                <th>Velocity</th>
+                                <th>Friction loss</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var option in _options)
+                            {
+                                <tr @key="option">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <button class="btn btn-outline-secondary btn-sm"
+                                                    aria-label="Decrease width"
+                                                    disabled="@(option.Width <= 1)"
+                                                    @onclick="() => ChangeSize(option, -1, 0)">−</button>
+                                            <span>@option.Width in.</span>
+                                            <button class="btn btn-outline-secondary btn-sm"
+                                                    aria-label="Increase width"
+                                                    @onclick="() => ChangeSize(option, 1, 0)">+</button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <button class="btn btn-outline-secondary btn-sm"
+                                                    aria-label="Decrease height"
+                                                    disabled="@(option.Height <= 1)"
+                                                    @onclick="() => ChangeSize(option, 0, -1)">−</button>
+                                            <span>@option.Height in.</span>
+                                            <button class="btn btn-outline-secondary btn-sm"
+                                                    aria-label="Increase height"
+                                                    @onclick="() => ChangeSize(option, 0, 1)">+</button>
+                                        </div>
+                                    </td>
+                                    <td>@_cfm.ToString("0.##") CFM</td>
+                                    <td>@option.Velocity.ToString("0.##") FPM</td>
+                                    <td>@option.FrictionLoss.ToString("0.000") in. w.g./100 ft</td>
+                                    <td>
+                                        @if (option.ExceedsLimits)
+                                        {
+                                            <span class="badge bg-warning text-dark">Over limit</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Within limits</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p>No suggested sizes yet. Press <strong>Calculate sizes</strong>.</p>
+                }
+            }
+            else
+            {
+                @if (_ovals.Count > 0)
+                {
+                    <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                        <table class="table table-striped table-hover align-middle">
+                            <thead class="table-dark" style="position: sticky; top: 0;">
+                            <tr>
+                                <th>Major axis</th>
+                                <th>Minor axis</th>
+                                <th>Airflow</th>
+                                <th>Velocity</th>
+                                <th>Friction loss</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var option in _ovals)
+                            {
+                                <tr @key="option">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <button class="btn btn-outline-secondary btn-sm"
+                                                    aria-label="Decrease major axis"
+                                                    @onclick="() => ChangeOvalSize(option, -1, 0)">−</button>
+                                            <span>@option.Major in.</span>
+                                            <button class="btn btn-outline-secondary btn-sm"
+                                                    aria-label="Increase major axis"
+                                                    @onclick="() => ChangeOvalSize(option, 1, 0)">+</button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <button class="btn btn-outline-secondary btn-sm"
+                                                    aria-label="Decrease minor axis"
+                                                    @onclick="() => ChangeOvalSize(option, 0, -1)">−</button>
+                                            <span>@option.Minor in.</span>
+                                            <button class="btn btn-outline-secondary btn-sm"
+                                                    aria-label="Increase minor axis"
+                                                    @onclick="() => ChangeOvalSize(option, 0, 1)">+</button>
+                                        </div>
+                                    </td>
+                                    <td>@_cfm.ToString("0.##") CFM</td>
+                                    <td>@option.Velocity.ToString("0.##") FPM</td>
+                                    <td>@option.FrictionLoss.ToString("0.000") in. w.g./100 ft</td>
+                                    <td>
+                                        @if (option.ExceedsLimits)
+                                        {
+                                            <span class="badge bg-warning text-dark">Over limit</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Within limits</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p>No suggested sizes yet. Press <strong>Calculate sizes</strong>.</p>
+                }
+            }
+        </div>
+    </div>
+</div>
 
 @code {
-    private string _quadResult = "";
-    private string _roundResult = "";
-    private string _ovalResult = "";
     private double _cfm = 2100;
     private double _velocity = 800;
     private double _frictionLoss = 0.08;
 
+    private List<RectangularOption> _options = new();
+    private string _roundResult = "";
+    private List<OvalOption> _ovals = new();
+    private string _ovalResult = "";
+    
+    private RoundOption? _round;
+    private string _activeTab = "rectangle";
+    
+    private async Task ExportPdf()
+    {
+        var sections = new List<PdfSection>();
+        var head = new[] { "Size", "Velocity (FPM)", "Friction (in. w.g./100 ft)", "Status" };
+
+        if (_round is not null)
+        {
+            sections.Add(new PdfSection("Round", head, new[]
+            {
+                new[]
+                {
+                    $"{_round.Diameter}\" dia",
+                    _round.Velocity.ToString("0.##"),
+                    _round.FrictionLoss.ToString("0.000"),
+                    _round.ExceedsLimits ? "Over limit" : "OK"
+                }
+            }));
+        }
+
+        if (_options.Count > 0)
+        {
+            sections.Add(new PdfSection("Rectangular", head, _options.Select(o => new[]
+            {
+                $"{o.Width}\" x {o.Height}\"",
+                o.Velocity.ToString("0.##"),
+                o.FrictionLoss.ToString("0.000"),
+                o.ExceedsLimits ? "Over limit" : "OK"
+            }).ToArray()));
+        }
+
+        if (_ovals.Count > 0)
+        {
+            sections.Add(new PdfSection("Oval", head, _ovals.Select(o => new[]
+            {
+                $"{o.Major}\" x {o.Minor}\"",
+                o.Velocity.ToString("0.##"),
+                o.FrictionLoss.ToString("0.000"),
+                o.ExceedsLimits ? "Over limit" : "OK"
+            }).ToArray()));
+        }
+
+        var subtitle = $"Airflow {_cfm:0.##} CFM | Max velocity {_velocity:0.##} FPM | " +
+                       $"Max friction {_frictionLoss:0.00} in. w.g./100 ft";
+
+        await Pdf.Export("Duct Sizing Report", subtitle, sections, "duct-sizes.pdf");
+    }
+    
+
     private void Calculate()
     {
         var calculator = new SheetmetalTools.Ducts.Duculator(_cfm, _frictionLoss, 120, _velocity);
-        
-        var quad = calculator.NewSquare();
+
+        var square = calculator.NewSquare();
+        var squareSide = (int)Math.Round(
+            Math.Sqrt(square.Shape.Area * 144),
+            MidpointRounding.AwayFromZero);
+
         var round = calculator.NewRound();
-        var oval = calculator.NewOval2to1();
+        var diameter = (int)Math.Round(
+            2 * Math.Sqrt(round.Shape.Area * 144 / Math.PI),
+            MidpointRounding.AwayFromZero);
 
+        _round = new RoundOption { Diameter = diameter };
+        RecalculateRound(_round);
+        
+        var ovals = new List<OvalOption>();
 
-        _quadResult = $"Rectangular Size: {quad.Shape.Size}";
-        _roundResult = $"Round Size: {round.Shape.Size}";
-        _ovalResult = $"Oval Size: {oval.Shape.Size}";
+        for (var major = diameter; ; major += 2)
+        {
+            int minor;
+
+            try
+            {
+                var candidate = calculator.NewOval(major);
+                minor = MinorAxisFromArea(major, candidate.Shape.Area * 144);
+            }
+            catch (InvalidOperationException)
+            {
+                continue;
+            }
+
+            if (minor < 4 || major > minor * 4)
+            {
+                break;
+            }
+
+            var option = new OvalOption { Major = major, Minor = minor };
+            RecalculateOval(option);
+            ovals.Add(option);
+        }
+
+        _ovals = ovals;
+
+        var options = new List<RectangularOption>();
+
+        if (squareSide >= 4)
+        {
+            AddOption(options, squareSide, squareSide);
+
+            for (var width = squareSide + 2; width <= squareSide * 4; width += 2)
+            {
+                var candidate = calculator.NewRec(width);
+                var height = (int)Math.Round(
+                    candidate.Shape.Area * 144 / width,
+                    MidpointRounding.AwayFromZero);
+
+                if (height < 4 || width > height * 4)
+                {
+                    break;
+                }
+
+                AddOption(options, width, height);
+            }
+        }
+
+        _options = options;
+        
+    }
+    
+
+    private void AddOption(List<RectangularOption> options, int width, int height)
+    {
+        var option = new RectangularOption
+        {
+            Width = width,
+            Height = height
+        };
+
+        Recalculate(option);
+        options.Add(option);
+    }
+
+    private void ChangeSize(RectangularOption option, int widthChange, int heightChange)
+    {
+        var newWidth = option.Width + widthChange;
+        var newHeight = option.Height + heightChange;
+
+        if (newWidth < 1 || newHeight < 1)
+        {
+            return;
+        }
+
+        option.Width = newWidth;
+        option.Height = newHeight;
+        Recalculate(option);
+    }
+
+    private void Recalculate(RectangularOption option)
+    {
+        var duct = Duct.CreateRect(
+            option.Width,
+            option.Height,
+            120,
+            new Airflow(_cfm),
+            Material.Galvanized);
+
+        var airflow = duct.Airflow!;
+        var friction = new FrictionLoss(duct);
+
+        option.Velocity = airflow.VelocityFor(duct.Shape.Area);
+        option.FrictionLoss = friction.FrictionLossPer100Ft;
+        option.ExceedsLimits =
+            option.Velocity > _velocity ||
+            option.FrictionLoss > _frictionLoss;
+    }
+    
+    private void ChangeRoundSize(int change)
+    {
+        if (_round is null || _round.Diameter + change < 1)
+        {
+            return;
+        }
+
+        _round.Diameter += change;
+        RecalculateRound(_round);
+    }
+
+    private void RecalculateRound(RoundOption option)
+    {
+        var duct = Duct.CreateRound(
+            option.Diameter,
+            120,
+            new Airflow(_cfm),
+            Material.Galvanized);
+
+        option.Velocity = duct.Airflow!.VelocityFor(duct.Shape.Area);
+        option.FrictionLoss = new FrictionLoss(duct).FrictionLossPer100Ft;
+        option.ExceedsLimits =
+            option.Velocity > _velocity ||
+            option.FrictionLoss > _frictionLoss;
+    }
+    
+    private static int MinorAxisFromArea(double major, double areaIn2)
+    {
+        var k = 1 - Math.PI / 4;
+        var minor = (major - Math.Sqrt(major * major - 4 * k * areaIn2)) / (2 * k);
+        return (int)Math.Round(minor, MidpointRounding.AwayFromZero);
+    }
+
+    private void ChangeOvalSize(OvalOption option, int majorChange, int minorChange)
+    {
+        var newMajor = option.Major + majorChange;
+        var newMinor = option.Minor + minorChange;
+
+        if (newMinor < 1 || newMajor < newMinor)
+        {
+            return;
+        }
+
+        option.Major = newMajor;
+        option.Minor = newMinor;
+        RecalculateOval(option);
+    }
+
+    private void RecalculateOval(OvalOption option)
+    {
+        var duct = Duct.CreateOval(
+            option.Major,
+            option.Minor,
+            120,
+            new Airflow(_cfm),
+            Material.Galvanized);
+
+        option.Velocity = duct.Airflow!.VelocityFor(duct.Shape.Area);
+        option.FrictionLoss = new FrictionLoss(duct).FrictionLossPer100Ft;
+        option.ExceedsLimits =
+            option.Velocity > _velocity ||
+            option.FrictionLoss > _frictionLoss;
+    }
+
+    private sealed class OvalOption
+    {
+        public int Major { get; set; }
+        public int Minor { get; set; }
+        public double Velocity { get; set; }
+        public double FrictionLoss { get; set; }
+        public bool ExceedsLimits { get; set; }
+    }
+
+    private sealed class RoundOption
+    {
+        public int Diameter { get; set; }
+        public double Velocity { get; set; }
+        public double FrictionLoss { get; set; }
+        public bool ExceedsLimits { get; set; }
+    }
+
+    private sealed class RectangularOption
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public double Velocity { get; set; }
+        public double FrictionLoss { get; set; }
+        public bool ExceedsLimits { get; set; }
     }
 }

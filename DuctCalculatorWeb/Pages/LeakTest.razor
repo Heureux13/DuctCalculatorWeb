@@ -1,7 +1,343 @@
-﻿@page "/leakTest"
+﻿@page "/leaktest"
+@using DuctCalculatorWeb.Services
+@inject PdfExporter Pdf
+@using DuctCalculatorWeb.Models
+@using System.Text.Json
+@inject IJSRuntime JS
 
-<h3>LeakTest</h3>
+<h1>Duct Leakage Test</h1>
+
+<div class="d-flex mb-3">
+    <button class="btn btn-outline-secondary" @onclick="ExportPdf">Download PDF</button>
+    <button class="btn btn-outline-danger ms-auto" @onclick="ClearAll">Clear all</button>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body small">
+        <strong>Units</strong>
+        <ul class="mb-2">
+            <li><strong>SFA</strong> (ft²/ft): surface area per foot of duct, which is the perimeter in feet.</li>
+            <li><strong>SFD</strong> (ft²): surface area of the duct, SFA × length.</li>
+            <li><strong>Test pressure</strong> (in. w.g.): static pressure the duct is tested at.</li>
+            <li><strong>Allowable leakage</strong> (CFM): the most air the duct may leak at that pressure.</li>
+            <li><strong>Leakage class</strong>: seal class A, B, or C. Class C is the tightest.</li>
+        </ul>
+        <strong>Formulas</strong>
+        <ul class="mb-0">
+            <li>Round SFA = π × diameter ÷ 12</li>
+            <li>Square/rectangular SFA = 2 × (width + height) ÷ 12</li>
+            <li>Oval SFA = (2 × (major − minor) + π × minor) ÷ 12</li>
+            <li>SFD = SFA × length</li>
+            <li>Allowable leakage = class × (SFD ÷ 100) × test pressure<sup>0.65</sup></li>
+            <li>Class value: round and oval A/B/C = 2/4/8, square/rectangular A/B/C = 4/8/16</li>
+        </ul>
+        <p class="text-muted mt-2 mb-0"><em>For reference only. Verify results against the project specifications.</em></p>
+    </div>
+</div>
+
+<div class="row g-2 mb-4 text-center">
+    <div class="col-md-2">
+        <label class="form-label fw-bold" for="jobName">Job Name</label>
+        <input id="jobName" class="form-control" @bind="_jobName" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label fw-bold" for="jobNumber">Job #</label>
+        <input id="jobNumber" class="form-control" @bind="_jobNumber" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label fw-bold" for="system">System</label>
+        <input id="system" class="form-control" @bind="_system" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label fw-bold" for="unit">Unit</label>
+        <input id="unit" class="form-control" @bind="_unit" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label fw-bold" for="date">Date</label>
+        <input id="date" class="form-control" type="date" @bind="_date" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label fw-bold" for="witness">Witness</label>
+        <input id="witness" class="form-control" @bind="_witness" />
+    </div>
+</div>
+
+@foreach (var branch in _branches)
+{
+    <div class="card mb-4 border-orange" @key="branch">
+        <div class="card-header d-flex align-items-center gap-3">
+            <strong>Branch</strong>
+            <input class="form-control w-auto" placeholder="Branch name" @bind="branch.Name" />
+            <button class="btn btn-outline-secondary btn-sm" aria-label="Move branch up"
+                    @onclick="() => Move(_branches, branch, -1)">▲</button>
+            <button class="btn btn-outline-secondary btn-sm" aria-label="Move branch down"
+                    @onclick="() => Move(_branches, branch, 1)">▼</button>
+            <button class="btn btn-outline-danger btn-sm ms-auto" aria-label="Delete branch"
+                    @onclick="() => _branches.Remove(branch)">Delete</button>
+        </div>
+
+        <div class="card-body">
+            @foreach (var run in branch.Runs)
+            {
+                <div class="card mb-3 border-primary" @key="run">
+                    <div class="card-header d-flex align-items-center gap-3">
+                        <strong>Run</strong>
+                        <input class="form-control w-auto" placeholder="Run name" @bind="run.Name" />
+                        <button class="btn btn-outline-secondary btn-sm" aria-label="Move run up"
+                                @onclick="() => Move(branch.Runs, run, -1)">▲</button>
+                        <button class="btn btn-outline-secondary btn-sm" aria-label="Move run down"
+                                @onclick="() => Move(branch.Runs, run, 1)">▼</button>
+                        <button class="btn btn-outline-danger btn-sm ms-auto" aria-label="Delete run"
+                                @onclick="() => branch.Runs.Remove(run)">Delete</button>
+                    </div>
+
+                    <div class="card-body">
+                        @foreach (var sec in run.Sections)
+                        {
+                            <div class="card mb-3 border-success" @key="sec">
+                                <div class="card-header d-flex align-items-center gap-3">
+                                    <strong>Section</strong>
+                                    <input class="form-control w-auto" placeholder="Section name" @bind="sec.Name" />
+                                    <button class="btn btn-outline-secondary btn-sm" aria-label="Move section up"
+                                            @onclick="() => Move(run.Sections, sec, -1)">▲</button>
+                                    <button class="btn btn-outline-secondary btn-sm" aria-label="Move section down"
+                                            @onclick="() => Move(run.Sections, sec, 1)">▼</button>
+                                    <button class="btn btn-outline-danger btn-sm ms-auto" aria-label="Delete section"
+                                            @onclick="() => run.Sections.Remove(sec)">Delete</button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm align-middle text-center mb-2">
+                                            <thead class="table-dark align-top">
+                                            <tr>
+                                                <th>Test #</th>
+                                                <th>Type<br /><small>(RND/SQR/OVL)</small></th>
+                                                <th>Diameter<br /><small>(in)</small></th>
+                                                <th>Width / Major<br /><small>(in)</small></th>
+                                                                                                <th>Height / Minor<br /><small>(in)</small></th>
+                                                <th>Length<br /><small>(ft)</small></th>
+                                                <th>SFA<br /><small>(ft²/ft)</small></th>
+                                                <th>SFD<br /><small>(ft²)</small></th>
+                                                <th>Leakage Class<br /><small>(A/B/C)</small></th>
+                                                <th>Test Pressure<br /><small>(w.g.)</small></th>
+                                                <th>Allowable Leakage<br /><small>(CFM)</small></th>
+                                                <th>Running Total<br /><small>(section)</small></th>
+                                                <th></th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            @for (var i = 0; i < sec.Ducts.Count; i++)
+                                            {
+                                                var d = sec.Ducts[i];
+                                                var running = sec.Ducts.Take(i + 1).Sum(x => x.AllowableLeakage);
+                                                var runRunning = running;
+
+                                                <tr @key="d">
+                                                    <td class="text-nowrap">
+                                                        <button class="btn btn-outline-secondary btn-sm py-0 px-1" aria-label="Move duct up"
+                                                                @onclick="() => Move(sec.Ducts, d, -1)">▲</button>
+                                                        @(i + 1)
+                                                        <button class="btn btn-outline-secondary btn-sm py-0 px-1" aria-label="Move duct down"
+                                                                @onclick="() => Move(sec.Ducts, d, 1)">▼</button>
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm" @bind="d.Type">
+                                                            <option value="RND">RND</option>
+                                                            <option value="SQR">SQR</option>
+                                                            <option value="OVL">OVL</option>
+                                                        </select>
+                                                    </td>
+                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="30" disabled="@(d.Type != "RND")" @bind="d.Diameter" /></td>
+                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Width" /></td>
+                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Height" /></td>
+                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="100" @bind="d.Length" /></td>
+                                                    <td>@d.Sfa.ToString("0.##")</td>
+                                                    <td>@d.Sfd.ToString("0.##")</td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm" @bind="d.LeakClass">
+                                                            <option value="A">A</option>
+                                                            <option value="B">B</option>
+                                                            <option value="C">C</option>
+                                                        </select>
+                                                    </td>
+                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="6" @bind="d.TestPressure" /></td>
+                                                    <td>@d.AllowableLeakage.ToString("0.##")</td>
+                                                    <td>@runRunning.ToString("0.##")</td>
+                                                    <td>
+                                                        <button class="btn btn-outline-danger btn-sm" aria-label="Delete duct"
+                                                                @onclick="() => sec.Ducts.Remove(d)">✕</button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <button class="btn btn-outline-secondary btn-sm"
+                                            @onclick="() => sec.Ducts.Add(new LeakDuct())">+ Add duct</button>
+                                </div>
+                                <div class="card-footer text-end">Total: @sec.Total.ToString("0.##") CFM</div>
+                            </div>
+                        }
+
+                        <button class="                        btn btn-outline-success btn-sm"
+                                @onclick="() => run.Sections.Add(new LeakSection())">+ Add section</button>
+                    </div>
+                    <div class="card-footer text-end">Total: @run.Total.ToString("0.##") CFM</div>
+                </div>
+            }
+
+            <button class="            btn btn-outline-primary btn-sm"
+                    @onclick="() => branch.Runs.Add(new LeakRun())">+ Add run</button>
+        </div>
+        <div class="card-footer text-end">Total: @branch.Total.ToString("0.##") CFM</div>
+    </div>
+}
+
+<button class="btn btn-outline-orange mb-4"
+        @onclick="() => _branches.Add(new LeakBranch())">+ Add branch</button>
 
 @code {
+    private string _jobName = "";
+    private string _jobNumber = "";
+    private string _system = "";
+    private string _unit = "";
+    private DateTime? _date;
+    private string _witness = "";
+    private List<LeakBranch> _branches = new() { new LeakBranch() };
+    private const string StorageKey = "leaktest-v1";
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var json = await JS.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+            var save = json is null ? null : JsonSerializer.Deserialize<LeakSave>(json);
+
+            if (save is not null)
+            {
+                _jobName = save.JobName;
+                _jobNumber = save.JobNumber;
+                _system = save.System;
+                _unit = save.Unit;
+                _date = save.Date;
+                _witness = save.Witness;
+                _branches = save.Branches;
+            }
+        }
+        catch (Exception)
+        {
+            // Corrupt or unavailable storage: start with a blank form.
+        }
+
+        _loaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_loaded)
+        {
+            return;
+        }
+
+        var save = new LeakSave
+        {
+            JobName = _jobName, JobNumber = _jobNumber, System = _system,
+            Unit = _unit, Date = _date, Witness = _witness, Branches = _branches
+        };
+
+        await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, JsonSerializer.Serialize(save));
+    }
+
+    private async Task ClearAll()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", "Clear all data on this page? This can't be undone."))
+        {
+            return;
+        }
+
+        _jobName = _jobNumber = _system = _unit = _witness = "";
+        _date = null;
+        _branches = new() { new LeakBranch() };
+    }
+
+    private static void Move<T>(List<T> list, T item, int direction)
+    {
+        var index = list.IndexOf(item);
+        var target = index + direction;
+
+        if (index < 0 || target < 0 || target >= list.Count)
+        {
+            return;
+        }
+
+        list.RemoveAt(index);
+        list.Insert(target, item);
+    }
     
+    private async Task ExportPdf()
+    {
+        var head = new[]
+        {
+            "Test #", "Type", "Diameter\n(in)", "Width/Major\n(in)",
+            "Height/Minor\n(in)", "Length\n(ft)", "SFA\n(ft²/ft)", "SFD\n(ft²)",
+            "Class\n(A/B/C)", "Test Pressure\n(w.g.)", "Allowable\nLeakage (CFM)",
+            "Running Total\n(section)"
+        };
+
+        var subtitle =
+            $"Job Name: {_jobName}|Job #: {_jobNumber}|System: {_system}|" +
+            $"Unit: {_unit}|Date: {(_date is null ? "" : _date.Value.ToString("MM/dd/yyyy"))}|Witness: {_witness}";
+
+        var legend = new[]
+        {
+            "#Units",
+            "SFA (ft²/ft): surface area per foot of duct, which is the perimeter in feet.",
+            "SFD (ft²): surface area of the duct, SFA × length.",
+            "Test pressure (in. w.g.): static pressure the duct is tested at.",
+            "Allowable leakage (CFM): the most air the duct may leak at that pressure.",
+            "Leakage class: seal class A, B, or C. Class C is the tightest.",
+            "#Formulas",
+            "Round SFA = pi × diameter ÷ 12;  Square/rectangular SFA = 2 × (width + height) ÷ 12;  Oval SFA = (2 × (major - minor) + pi × minor) ÷ 12",
+            "SFD = SFA × length;  Allowable leakage = class × (SFD ÷ 100) × test pressure^0.65",
+            "Class value: round and oval A/B/C = 2/4/8, square/rectangular A/B/C = 4/8/16",
+            "For reference only. Verify results against the project specifications."
+        };
+
+        var boxes = _branches.Select(branch => new PdfBranchBox(
+            branch.Name,
+            branch.Total,
+            branch.Runs.Select(run => new PdfRunBox(
+                run.Name,
+                run.Total,
+                run.Sections.Select(sec =>
+                {
+                    var rows = sec.Ducts.Select((d, i) =>
+                    {
+                        var running = sec.Ducts.Take(i + 1).Sum(x => x.AllowableLeakage);
+
+                        return new[]
+                        {
+                            (i + 1).ToString(),
+                            d.Type,
+                            d.Type == "RND" ? $"{d.Diameter:0.##}" : "",
+                            d.Type == "RND" ? "" : $"{d.Width:0.##}",
+                            d.Type == "RND" ? "" : $"{d.Height:0.##}",
+                            $"{d.Length:0.##}",
+                            $"{d.Sfa:0.##}",
+                            $"{d.Sfd:0.##}",
+                            d.LeakClass,
+                            $"{d.TestPressure:0.##}",
+                            $"{d.AllowableLeakage:0.##}",
+                            $"{running:0.##}"
+                        };
+                    }).ToArray();
+
+                    return new PdfSectionBox(sec.Name, sec.Total, rows);
+                }).ToArray())).ToArray())).ToArray();
+
+        await Pdf.ExportNested("Nava's Leakage Test Extravaganza Where Air Don't Care", subtitle, head, boxes, "leak-test.pdf", legend);
+    }
 }

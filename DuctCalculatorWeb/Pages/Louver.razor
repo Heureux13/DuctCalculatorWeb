@@ -1,39 +1,281 @@
 ﻿@page "/louver"
+@using SheetmetalTools.Air
 @using SheetmetalTools.Devices
 
-<h3>Louver</h3>
+<h1>Louver Calculator</h1>
 
-<div>
-    <label>Airflow (CFM):</label>
-    <input type="number" @bind="_cfm"/>
-    
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <label class="form-label" for="cfm">Airflow (CFM)</label>
+        <input id="cfm" class="form-control" type="number" step="any" @bind="_cfm" />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="velocity">Maximum velocity (FPM)</label>
+        <input id="velocity" class="form-control" type="number" step="any" @bind="_velocity" />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="freeair">Free air (1-100%)</label>
+        <input id="freeair" class="form-control" type="number" step="any" @bind="_freeAir" />
+    </div>
 </div>
 
-<div>
-    <label>Velocity (FPM):</label>
-    <input type="number" @bind="_velocity"/>
-    
-</div>
-
-<div>
-    <label>Free Air (1-100%):</label>
-    <input type="number" @bind="_freeAir"/>
-</div>
-
-<button class="btn btn-primary" @onclick="Calculate">
-    Calculate
+<button class="btn btn-primary mb-4" @onclick="Calculate">
+    Calculate sizes
 </button>
-<p>@_result</p>
+
+@if (_round is not null)
+{
+    <h2 class="h4">Suggested round size</h2>
+
+    <table class="table table-striped align-middle mb-4">
+        <thead class="table-dark">
+        <tr>
+            <th>Diameter</th>
+            <th>Airflow</th>
+            <th>Velocity</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-secondary btn-sm"
+                            aria-label="Decrease diameter"
+                            disabled="@(_round.A <= 1)"
+                            @onclick="() => ChangeRound(-1)">−</button>
+                    <span>@_round.A in. Ø</span>
+                    <button class="btn btn-outline-secondary btn-sm"
+                            aria-label="Increase diameter"
+                            @onclick="() => ChangeRound(1)">+</button>
+                </div>
+            </td>
+            <td>@_cfm.ToString("0.##") CFM</td>
+            <td>@_round.Velocity.ToString("0.##") FPM</td>
+            <td>
+                @if (_round.ExceedsLimit)
+                {
+                    <span class="badge bg-warning text-dark">Over limit</span>
+                }
+                else
+                {
+                    <span class="badge bg-success">Within limit</span>
+                }
+            </td>
+        </tr>
+        </tbody>
+    </table>
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+            <li class="nav-item">
+                <button class="nav-link @(_activeTab == "rectangle" ? "active" : "")"
+                        @onclick='() => _activeTab = "rectangle"'>Rectangle</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(_activeTab == "oval" ? "active" : "")"
+                        @onclick='() => _activeTab = "oval"'>Oval</button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card-body">
+        @{
+            var isRect = _activeTab == "rectangle";
+            var rows = isRect ? _rects : _ovals;
+        }
+
+        @if (rows.Count > 0)
+        {
+            <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-dark" style="position: sticky; top: 0;">
+                        <tr>
+                            <th>@(isRect ? "Width" : "Major axis")</th>
+                            <th>@(isRect ? "Height" : "Minor axis")</th>
+                            <th>Airflow</th>
+                            <th>Velocity</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var option in rows)
+                        {
+                            <tr @key="option">
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                aria-label="Decrease first dimension"
+                                                @onclick="() => ChangeSize(option, isRect, -1, 0)">−</button>
+                                        <span>@option.A in.</span>
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                aria-label="Increase first dimension"
+                                                @onclick="() => ChangeSize(option, isRect, 1, 0)">+</button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                aria-label="Decrease second dimension"
+                                                @onclick="() => ChangeSize(option, isRect, 0, -1)">−</button>
+                                        <span>@option.B in.</span>
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                aria-label="Increase second dimension"
+                                                @onclick="() => ChangeSize(option, isRect, 0, 1)">+</button>
+                                    </div>
+                                </td>
+                                <td>@_cfm.ToString("0.##") CFM</td>
+                                <td>@option.Velocity.ToString("0.##") FPM</td>
+                                <td>
+                                    @if (option.ExceedsLimit)
+                                    {
+                                        <span class="badge bg-warning text-dark">Over limit</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Within limit</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p>No suggested sizes yet. Press <strong>Calculate sizes</strong>.</p>
+        }
+    </div>
+</div>
 
 @code {
-    private string _result = "";
     private double _cfm = 5000;
     private double _velocity = 800;
     private double _freeAir = 50;
 
+    private SizeOption? _round;
+    private List<SizeOption> _rects = new();
+    private List<SizeOption> _ovals = new();
+    private string _activeTab = "rectangle";
+
     private void Calculate()
     {
-        var quad = LouverSizer.CreateSquare(_cfm, _velocity, _freeAir);
-        _result = quad.Shape.Size;
+        var roundLouver = LouverSizer.CreateRound(_cfm, _velocity, _freeAir);
+        var diameter = (int)Math.Ceiling(roundLouver.Diameter!.Value);
+
+        _round = new SizeOption { A = diameter };
+        RecalculateRound(_round);
+
+        var squareSide = (int)Math.Ceiling(
+            LouverSizer.CreateSquare(_cfm, _velocity, _freeAir).Width!.Value);
+
+        var rects = new List<SizeOption>();
+
+        for (var width = squareSide; width <= squareSide * 4; width += (width == squareSide ? 2 : 2))
+        {
+            var height = width == squareSide
+                ? squareSide
+                : (int)Math.Ceiling(
+                    LouverSizer.CreateRect(width, _cfm, _velocity, _freeAir).Height!.Value);
+
+            if (height < 4 || width > height * 4)
+            {
+                break;
+            }
+
+            var option = new SizeOption { A = width, B = height };
+            RecalculateRect(option);
+            rects.Add(option);
+        }
+
+        _rects = rects;
+
+        var ovals = new List<SizeOption>();
+
+        for (var major = diameter; major <= diameter * 4; major += 2)
+        {
+            int minor;
+
+            try
+            {
+                minor = (int)Math.Ceiling(
+                    LouverSizer.CreateOval(major, _cfm, _velocity, _freeAir).MinorAxis!.Value);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                continue;
+            }
+
+            if (minor < 4 || major > minor * 4)
+            {
+                break;
+            }
+
+            var option = new SizeOption { A = major, B = minor };
+            RecalculateOval(option);
+            ovals.Add(option);
+        }
+
+        _ovals = ovals;
+    }
+
+    private void ChangeRound(int change)
+    {
+        if (_round is null || _round.A + change < 1)
+        {
+            return;
+        }
+
+        _round.A += change;
+        RecalculateRound(_round);
+    }
+
+    private void ChangeSize(SizeOption option, bool isRect, int aChange, int bChange)
+    {
+        var newA = option.A + aChange;
+        var newB = option.B + bChange;
+
+        if (newA < 1 || newB < 1 || (!isRect && newA < newB))
+        {
+            return;
+        }
+
+        option.A = newA;
+        option.B = newB;
+
+        if (isRect)
+        {
+            RecalculateRect(option);
+        }
+        else
+        {
+            RecalculateOval(option);
+        }
+    }
+
+    private void RecalculateRound(SizeOption option) =>
+        Apply(option, SheetmetalTools.Devices.Louver.CreateRound(option.A, _freeAir, new Airflow(_cfm)));
+
+    private void RecalculateRect(SizeOption option) =>
+        Apply(option, SheetmetalTools.Devices.Louver.CreateRect(option.A, option.B, _freeAir, new Airflow(_cfm)));
+
+    private void RecalculateOval(SizeOption option) =>
+        Apply(option, SheetmetalTools.Devices.Louver.CreateOval(option.A, option.B, _freeAir, new Airflow(_cfm)));
+
+    private void Apply(SizeOption option, SheetmetalTools.Devices.Louver louver)
+    {
+        option.Velocity = louver.Velocity ?? 0;
+        option.ExceedsLimit = option.Velocity > _velocity;
+    }
+
+    private sealed class SizeOption
+    {
+        public int A { get; set; }
+        public int B { get; set; }
+        public double Velocity { get; set; }
+        public bool ExceedsLimit { get; set; }
     }
 }

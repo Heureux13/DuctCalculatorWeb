@@ -112,3 +112,45 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.pdf-export .table-responsive {
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.pdf-export td button {
+    display: none !important;
+}
+
+.pdf-hidden {
+    position: absolute;
+    left: -10000px;
+    top: 0;
+    width: 720px;
+}
+
+.pdf-report {
+    background: #fff;
+    color: #000;
+    font-family: Arial, sans-serif;
+    padding: 10px;
+}
+
+.pdf-report h1 { font-size: 22px; margin-bottom: 4px; }
+.pdf-report h2 { font-size: 15px; margin: 16px 0 6px; }
+.pdf-report table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pdf-report th { background: #e9ecef; border: 1px solid #999; padding: 4px 6px; text-align: left; }
+.pdf-report td { border: 1px solid #ccc; padding: 4px 6px; }
+.pdf-report .over { color: #b00020; font-weight: bold; }
+.border-orange { border-color: #fd7e14 !important; }
+
+.btn-outline-orange {
+    color: #fd7e14;
+    border-color: #fd7e14;
+}
+
+.btn-outline-orange:hover {
+    color: #fff;
+    background-color: #fd7e14;
+    border-color: #fd7e14;
+}
