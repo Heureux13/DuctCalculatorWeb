@@ -108,7 +108,7 @@
 
                                 <div class="card-body">
                                     <div class="table-responsive">
-                                        <table class="table table-bordered table-sm align-middle text-center mb-2">
+                                        <table class="table table-bordered table-sm align-middle text-center mb-2 leak-table">
                                             <thead class="table-dark align-top">
                                             <tr>
                                                 <th>Test #</th>
@@ -134,37 +134,37 @@
                                                 var runRunning = running;
 
                                                 <tr @key="d">
-                                                    <td class="text-nowrap">
+                                                    <td class="text-nowrap" data-label="Test #">
                                                         <button class="btn btn-outline-secondary btn-sm py-0 px-1" aria-label="Move duct up"
                                                                 @onclick="() => Move(sec.Ducts, d, -1)">▲</button>
                                                         @(i + 1)
                                                         <button class="btn btn-outline-secondary btn-sm py-0 px-1" aria-label="Move duct down"
                                                                 @onclick="() => Move(sec.Ducts, d, 1)">▼</button>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Type">
                                                         <select class="form-select form-select-sm" @bind="d.Type">
                                                             <option value="RND">RND</option>
                                                             <option value="SQR">SQR</option>
                                                             <option value="OVL">OVL</option>
                                                         </select>
                                                     </td>
-                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="30" disabled="@(d.Type != "RND")" @bind="d.Diameter" /></td>
-                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Width" /></td>
-                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Height" /></td>
-                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="100" @bind="d.Length" /></td>
-                                                    <td>@d.Sfa.ToString("0.##")</td>
-                                                    <td>@d.Sfd.ToString("0.##")</td>
-                                                    <td>
+                                                    <td data-label="Diameter (in)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="30" disabled="@(d.Type != "RND")" @bind="d.Diameter" /></td>
+                                                    <td data-label="Width / Major (in)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Width" /></td>
+                                                    <td data-label="Height / Minor (in)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="50" disabled="@(d.Type == "RND")" @bind="d.Height" /></td>
+                                                    <td data-label="Length (ft)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="100" @bind="d.Length" /></td>
+                                                    <td data-label="SFA (ft²/ft)">@d.Sfa.ToString("0.##")</td>
+                                                    <td data-label="SFD (ft²)">@d.Sfd.ToString("0.##")</td>
+                                                    <td data-label="Leakage Class">
                                                         <select class="form-select form-select-sm" @bind="d.LeakClass">
                                                             <option value="A">A</option>
                                                             <option value="B">B</option>
                                                             <option value="C">C</option>
                                                         </select>
                                                     </td>
-                                                    <td><input class="form-control form-control-sm" type="number" step="any" min="0" max="6" @bind="d.TestPressure" /></td>
-                                                    <td>@d.AllowableLeakage.ToString("0.##")</td>
-                                                    <td>@runRunning.ToString("0.##")</td>
-                                                    <td>
+                                                    <td data-label="Test Pressure (w.g.)"><input class="form-control form-control-sm" type="number" step="any" min="0" max="6" @bind="d.TestPressure" /></td>
+                                                    <td data-label="Allowable Leakage (CFM)">@d.AllowableLeakage.ToString("0.##")</td>
+                                                    <td data-label="Running Total (section)">@runRunning.ToString("0.##")</td>
+                                                    <td class="leak-del">
                                                         <button class="btn btn-outline-danger btn-sm" aria-label="Delete duct"
                                                                 @onclick="() => sec.Ducts.Remove(d)">✕</button>
                                                     </td>
