@@ -198,11 +198,25 @@ window.downloadNestedPdf = async (title, subtitle, head, branches, filename, leg
     if (email) {
         const file = new File([doc.output('blob')], filename, { type: 'application/pdf' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({ files: [file], title: title, text: title });
-            } catch (e) {
-                if (e.name !== 'AbortError') alert('Could not share: ' + e.message);
-            }
+            // Phones only allow share() directly from a tap, so ask for a fresh tap once the PDF is ready.
+            const overlay = document.createElement('div');
+            overlay.className = 'leak-photo-overlay';
+            overlay.innerHTML =
+                '<div class="leak-photo-box text-center text-light">' +
+                '<p class="mb-3">PDF ready</p>' +
+                '<button class="btn btn-primary me-2" data-act="send">Send</button>' +
+                '<button class="btn btn-secondary" data-act="cancel">Cancel</button></div>';
+            document.body.appendChild(overlay);
+            overlay.querySelector('[data-act=cancel]').onclick = () => overlay.remove();
+            overlay.querySelector('[data-act=send]').onclick = () => {
+                overlay.remove();
+                navigator.share({ files: [file], title: title }).catch(e => {
+                    if (e.name !== 'AbortError') {
+                        alert('Could not share (' + e.name + '). Downloading instead.');
+                        doc.save(filename);
+                    }
+                });
+            };
             return;
         }
         // No share sheet (most desktops): download, then open a blank email to attach it to.
